@@ -51,7 +51,7 @@ async function returnEdges() {
   let allTxs = [];
   for (let startIndex = 0; startIndex < 225; startIndex) {
     const next25Txs = await retrieveTxsList(startIndex);
-    startIndex = startIndex + 25;
+    startIndex += 25;
     console.log(startIndex);
     allTxs = [...allTxs, ...next25Txs];
   }
