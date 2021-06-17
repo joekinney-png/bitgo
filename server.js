@@ -49,9 +49,10 @@ async function returnEdges() {
   // populate allTxs array with all of the transactions from the block, 25 at a time
   // replace the placeholder with 'totalTxns'
   let allTxs = [];
-  for (let startIndex = 0; startIndex < totalTxns; startIndex) {
+  for (let startIndex = 0; startIndex < 225; startIndex) {
     const next25Txs = await retrieveTxsList(startIndex);
     startIndex = startIndex + 25;
+    console.log(startIndex);
     allTxs = [...allTxs, ...next25Txs];
   }
 
@@ -81,33 +82,38 @@ function findAllAncestrySets(
       const sourcesForNextCall = sources.slice(0); // clone current sources
       sourcesForNextCall.splice(sourcesForNextCall.indexOf(ancestor), 1); // remove current source
       // get ancestors descendants and decrement their inDegrees
-      if (graph[ancestor]) {
-        graph[ancestor].forEach((descendant) => {
-          inDegree[descendant]--;
-          if (inDegree[descendant] === 0) {
-            sourcesForNextCall.push(descendant);
-          }
-        });
-
-        // recursive call the print other orderings from the remaining and new sources
-        findAllAncestrySets(
-          graph,
-          inDegree,
-          sourcesForNextCall,
-          sortedOrder,
-          allSortedOrders
-        );
-
-        // backtrack, remove the ancestor from the sorted order and pull all descendants back to consider next source
-        sortedOrder.splice(sortedOrder.indexOf(ancestor), 1);
-        for (i = 0; i < graph[ancestor].length; i++) {
-          inDegree[graph[ancestor][i]] += 1;
+      graph[ancestor].forEach((descendant) => {
+        inDegree[descendant]--;
+        if (inDegree[descendant] === 0) {
+          sourcesForNextCall.push(descendant);
         }
+      });
+
+      // recursive call the print other orderings from the remaining and new sources
+      findAllAncestrySets(
+        graph,
+        inDegree,
+        sourcesForNextCall,
+        sortedOrder,
+        allSortedOrders
+      );
+
+      // backtrack, remove the ancestor from the sorted order and pull all descendants back to consider next source
+      sortedOrder.splice(sortedOrder.indexOf(ancestor), 1);
+      for (i = 0; i < graph[ancestor].length; i++) {
+        inDegree[graph[ancestor][i]] += 1;
       }
     }
   }
 
-  allSortedOrders.push(sortedOrder);
+  if (
+    graph[sortedOrder[sortedOrder.length - 1]] &&
+    graph[sortedOrder[sortedOrder.length - 1]].length === 0
+  ) {
+    const completePath = sortedOrder.slice(0);
+    console.log(completePath);
+    allSortedOrders.push(completePath);
+  }
 }
 
 // function receiving the output of the returnEdges function which then generates graph, inDegree and sources
@@ -121,8 +127,9 @@ async function countAncestors() {
   txsEdgeArray.forEach((edge) => {
     const ancestor = edge[0];
     const descendant = edge[1];
+    if (!graph[descendant]) graph[descendant] = [];
     if (!graph[ancestor]) graph[ancestor] = [descendant];
-    else graph[ancestor.push(descendant)];
+    else graph[ancestor].push(descendant);
     if (!inDegree[descendant]) inDegree[descendant] = 1;
     else inDegree[descendant]++;
   });
@@ -136,15 +143,28 @@ async function countAncestors() {
   // find all topological sorted orders of the graph
   const sortedOrder = [];
   const allSortedOrders = [];
-  // const allAncestrySets = findAllAncestrySets(
-  //   graph,
-  //   inDegree,
-  //   sources,
-  //   sortedOrder,
-  //   allSortedOrders
-  // );
 
-  console.log(allSortedOrders);
+  for (let i = 0; i < sources.length; i++) {
+    findAllAncestrySets(
+      graph,
+      inDegree,
+      [sources[i]],
+      sortedOrder,
+      allSortedOrders
+    );
+  }
+
+  allSortedOrders.sort((a, b) => b.length - a.length);
+
+  console.log("all sorted orders: ", allSortedOrders);
+
+  const output = {};
+  for (let i = 0; i < 10; i++) {
+    const numberOfAncestors = allSortedOrders[i].length - 1;
+    output[allSortedOrders[i][numberOfAncestors]] = numberOfAncestors;
+  }
+
+  console.log(output);
 }
 
 countAncestors();
